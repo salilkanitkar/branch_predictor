@@ -1,0 +1,4 @@
+The aim of this project is to construct a Branch Predictor Simulator well suited to SPECint95 benchmarks.
+
+The Branch Predictor can be - gshare, bimodal or a hybrid of two - depending on the command line arguments passed.
+
