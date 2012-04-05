@@ -4,7 +4,3 @@
 
 #include "main.h"
 
-void test_func()
-{
-	printf("Hello World\n");
-}
