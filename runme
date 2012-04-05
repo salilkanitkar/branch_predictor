@@ -1,0 +1,36 @@
+#!/bin/sh
+
+echo "======== Compiling ========"
+make clean ; make 
+
+rm -f val_op.1 val_op.2 val_op.3 val_op.4
+rm -f val_diff.1 val_diff.2 val_diff.3 val_diff.4
+
+echo "======== Bimodal: Validation Run1 ========"
+./sim bimodal 6 traces/gcc_trace.txt > val_op.1
+diff -iw validation_runs/val_bimodal_1.txt val_op.1 > val_diff.1
+cat val_diff.1
+
+echo "======== Bimodal: Validation Run2 ========"
+./sim bimodal 12 traces/gcc_trace.txt > val_op.2
+diff -iw validation_runs/val_bimodal_2.txt val_op.2 > val_diff.2
+cat val_diff.2
+
+echo "======== Bimodal: Validation Run3 ========"
+./sim bimodal 4 traces/jpeg_trace.txt > val_op.3
+diff -iw validation_runs/val_bimodal_3.txt val_op.3 > val_diff.3
+cat val_diff.3
+
+echo "======== Bimodal: Validation Run4 ========"
+./sim bimodal 5 traces/perl_trace.txt > val_op.4
+diff -iw validation_runs/val_bimodal_4.txt val_op.4 > val_diff.4
+cat val_diff.4
+
+rm -f val_op.1 val_op.2 val_op.3 val_op.4
+rm -f val_diff.1 val_diff.2 val_diff.3 val_diff.4 
+
+echo "======= Cleaning out Binaries ======="
+make clean ;
+
+echo "Done....."
+

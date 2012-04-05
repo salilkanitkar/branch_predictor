@@ -24,11 +24,13 @@ predictor_t predictor;
 void print_usage();
 int validate_and_set_params(int, char *[]);
 void print_params();
+void print_pred_table();
 
 int main(int argc, char *argv[])
 {
 
-	unsigned int num_predictions = 0;
+	predictor.config.num_predictions = 0;
+	predictor.config.num_mispredictions = 0;
 
 	if (!(argc == 4 || argc == 5 || argc == 7)) {
 		printf("Invalid Numebr of Arguments!! \n\n");
@@ -50,6 +52,10 @@ int main(int argc, char *argv[])
 	}
 
 	initialize_pred_params(&predictor);
+	allocate_and_init_pred_tab(&predictor);
+#ifdef DEBUG_FLAG
+	print_pred_table();
+#endif
 
 	while (fgets(trace_str, MAX_TRACESTR_LEN, fp_trace)) {
 
@@ -59,7 +65,9 @@ int main(int argc, char *argv[])
 		printf("%x %c\n", pc.addr, pc.branch_outcome);
 #endif
 
-		num_predictions += 1;
+		handle_branch_prediction(&predictor, &pc);
+
+		predictor.config.num_predictions += 1;
 	}
 
 	print_params();
@@ -151,5 +159,36 @@ void print_params()
 		printf(" %s %s %d %d %d %d %s\n", cmd_text, sim_type, K, M1, N, M2, trace_file);
 	}
 
-	printf("OUTPUT %s %d %d %d %d\n", predictor.config.sim_type, predictor.config.M1, predictor.config.M2, predictor.config.N, predictor.config.K);
+	predictor.config.misprediction_rate = (float)predictor.config.num_mispredictions / (float)predictor.config.num_predictions;
+	predictor.config.misprediction_rate = predictor.config.misprediction_rate * 100;
+
+	printf("OUTPUT\n");
+	printf(" number of predictions:    %ld\n", predictor.config.num_predictions);
+	printf(" number of mispredictions: %ld\n", predictor.config.num_mispredictions);
+	printf(" misprediction rate:       %.2f%%\n", predictor.config.misprediction_rate);
+
+	if (strcmp(sim_type, "bimodal") == 0) {
+		printf("FINAL BIMODAL CONTENTS\n");
+	} else if (strcmp(sim_type, "gshare") == 0) {
+		printf("FINAL GSHARE CONTENTS\n");
+	} else if (strcmp(sim_type, "hybrid") == 0) {
+		printf("FINAL HYBRID CONTENTS\n");
+	}
+	print_pred_table();
 }
+
+void print_pred_table()
+{
+	int base, offset, byte, count;
+	int i;
+
+	for (i=0 ; i < predictor.config.num_entries ; i++) {
+		base = i / predictor.config.entries_per_byte;
+		offset = i % predictor.config.entries_per_byte;
+		offset = offset * 2;
+		byte = predictor.pred_table.table[base];
+		count = extract_bits(byte, offset, offset + predictor.config.bits_per_entry - 1);
+		printf(" %d\t%d\n", i, count);
+	}
+}
+
