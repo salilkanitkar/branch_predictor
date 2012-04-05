@@ -19,6 +19,8 @@ int K=0;
 
 pc_t pc;
 
+predictor_t predictor;
+
 void print_usage();
 int validate_and_set_params(int, char *[]);
 void print_params();
@@ -47,11 +49,15 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	initialize_pred_params(&predictor);
+
 	while (fgets(trace_str, MAX_TRACESTR_LEN, fp_trace)) {
 
 		sscanf(trace_str, "%x %c\n", &pc.addr, &pc.branch_outcome);
 
+#ifdef DEBUG_FLAG
 		printf("%x %c\n", pc.addr, pc.branch_outcome);
+#endif
 
 		num_predictions += 1;
 	}
@@ -145,5 +151,5 @@ void print_params()
 		printf(" %s %s %d %d %d %d %s\n", cmd_text, sim_type, K, M1, N, M2, trace_file);
 	}
 
-	printf("OUTPUT\n");
+	printf("OUTPUT %s %d %d %d %d\n", predictor.config.sim_type, predictor.config.M1, predictor.config.M2, predictor.config.N, predictor.config.K);
 }
