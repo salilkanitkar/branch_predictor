@@ -3,31 +3,62 @@
 echo "======== Compiling ========"
 make clean ; make 
 
-rm -f val_op.1 val_op.2 val_op.3 val_op.4
-rm -f val_diff.1 val_diff.2 val_diff.3 val_diff.4
+# =============== Bimodal =====================
+echo ""
+rm -f b_op.1 b_op.2 b_op.3 b_op.4
+rm -f b_diff.1 b_diff.2 b_diff.3 b_diff.4
 
 echo "======== Bimodal: Validation Run1 ========"
-./sim bimodal 6 traces/gcc_trace.txt > val_op.1
-diff -iw validation_runs/val_bimodal_1.txt val_op.1 > val_diff.1
-cat val_diff.1
+./sim bimodal 6 traces/gcc_trace.txt > b_op.1
+diff -iw validation_runs/val_bimodal_1.txt b_op.1 > b_diff.1
+cat b_diff.1
 
 echo "======== Bimodal: Validation Run2 ========"
-./sim bimodal 12 traces/gcc_trace.txt > val_op.2
-diff -iw validation_runs/val_bimodal_2.txt val_op.2 > val_diff.2
-cat val_diff.2
+./sim bimodal 12 traces/gcc_trace.txt > b_op.2
+diff -iw validation_runs/val_bimodal_2.txt b_op.2 > b_diff.2
+cat b_diff.2
 
 echo "======== Bimodal: Validation Run3 ========"
-./sim bimodal 4 traces/jpeg_trace.txt > val_op.3
-diff -iw validation_runs/val_bimodal_3.txt val_op.3 > val_diff.3
-cat val_diff.3
+./sim bimodal 4 traces/jpeg_trace.txt > b_op.3
+diff -iw validation_runs/val_bimodal_3.txt b_op.3 > b_diff.3
+cat b_diff.3
 
 echo "======== Bimodal: Validation Run4 ========"
-./sim bimodal 5 traces/perl_trace.txt > val_op.4
-diff -iw validation_runs/val_bimodal_4.txt val_op.4 > val_diff.4
-cat val_diff.4
+./sim bimodal 5 traces/perl_trace.txt > b_op.4
+diff -iw validation_runs/val_bimodal_4.txt b_op.4 > b_diff.4
+cat b_diff.4
 
-rm -f val_op.1 val_op.2 val_op.3 val_op.4
-rm -f val_diff.1 val_diff.2 val_diff.3 val_diff.4 
+rm -f b_op.1 b_op.2 b_op.3 b_op.4
+rm -f b_diff.1 b_diff.2 b_diff.3 b_diff.4 
+
+# =============== GShare =====================
+echo ""
+echo ""
+rm -f g_op.1 g_op.2 g_op.3 g_op.4
+rm -f g_diff.1 g_diff.2 g_diff.3 g_diff.4
+
+echo "======== GShare: Validation Run1 ========="
+./sim gshare 9 3 traces/gcc_trace.txt > g_op.1
+diff -iw validation_runs/val_gshare_1.txt g_op.1 > g_diff.1
+cat g_diff.1
+
+echo "======== GShare: Validation Run2 ========="
+./sim gshare 14 8 traces/gcc_trace.txt > g_op.2
+diff -iw validation_runs/val_gshare_2.txt g_op.2 > g_diff.2
+cat g_diff.2
+
+echo "======== GShare: Validation Run3 ========="
+./sim gshare 11 5 traces/jpeg_trace.txt > g_op.3
+diff -iw validation_runs/val_gshare_3.txt g_op.3 > g_diff.3
+cat g_diff.3
+
+echo "======== GShare: Validation Run4 ========="
+./sim gshare 10 6 traces/perl_trace.txt > g_op.4
+diff -iw validation_runs/val_gshare_4.txt g_op.4 > g_diff.4
+cat g_diff.4
+
+rm -f g_op.1 g_op.2 g_op.3 g_op.4
+rm -f g_diff.1 g_diff.2 g_diff.3 g_diff.4
 
 echo "======= Cleaning out Binaries ======="
 make clean ;
