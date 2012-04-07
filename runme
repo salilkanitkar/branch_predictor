@@ -60,6 +60,25 @@ cat g_diff.4
 rm -f g_op.1 g_op.2 g_op.3 g_op.4
 rm -f g_diff.1 g_diff.2 g_diff.3 g_diff.4
 
+# =================== Hybrid ====================
+echo ""
+echo ""
+rm -f h_op.1 h_op.2
+rm -f h_diff.1 h_diff.2
+
+echo "======== Hybrid: Validation Run1 ========"
+./sim hybrid 8 14 10 5 traces/gcc_trace.txt > h_op.1
+diff -iw validation_runs/val_hybrid_1.txt h_op.1 > h_diff.1
+cat h_diff.1
+
+echo "======== Hybrid: Validation Run2 ========"
+./sim hybrid 5 10 7 5 traces/jpeg_trace.txt > h_op.2
+diff -iw validation_runs/val_hybrid_2.txt h_op.2 > h_diff.2
+cat h_diff.2
+
+rm -f h_op.1 h_op.2
+rm -f h_diff.1 h_diff.2
+
 echo "======= Cleaning out Binaries ======="
 make clean ;
 

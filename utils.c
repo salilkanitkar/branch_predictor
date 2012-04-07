@@ -300,8 +300,234 @@ void allocate_and_init_hybrid_pred_tab(hybrid_predictor_t *hybrid_predictor)
 
 }
 
+int get_bimodal_prediction(predictor_t *predictor, pc_t *pc)
+{
+	int index, base, offset, byte, count;
+	int this_prediction;
+
+	index = extract_bits(pc->addr, 2, predictor->config.M2 + 1);
+	base = index / predictor->config.entries_per_byte;
+	offset = index % predictor->config.entries_per_byte;
+	offset = offset * 2;
+	byte = predictor->pred_table.table[base];
+	count = extract_bits(byte, offset, offset + predictor->config.bits_per_entry - 1);
+
+#ifdef DEBUG_OP
+	printf("\tBP: %d %d\n", index, count);
+#endif
+
+	if (count == 0 || count == 1) {
+		this_prediction = NOT_TAKEN;
+	} else if (count == 2 || count == 3) {
+		this_prediction = TAKEN;
+	}
+
+	return (this_prediction);
+}
+
+void update_bimodal_predictor(predictor_t *predictor, int prediction, pc_t *pc)
+{
+	int is_misprediction = 0;
+	int base, offset, byte, count, index;
+
+	index = extract_bits(pc->addr, 2, predictor->config.M2 + 1);
+
+	base = index / predictor->config.entries_per_byte;
+	offset = index % predictor->config.entries_per_byte;
+	offset = offset * 2;
+	byte = predictor->pred_table.table[base];
+	count = extract_bits(byte, offset, offset + predictor->config.bits_per_entry - 1);
+
+	if (pc->branch_outcome == 'n' && prediction == TAKEN) {
+		is_misprediction = 1;
+		predictor->config.num_mispredictions += 1;
+	} else if (pc->branch_outcome == 't' && prediction == NOT_TAKEN) {
+		is_misprediction = 1;
+		predictor->config.num_mispredictions += 1;
+	}
+
+	if (pc->branch_outcome == 't') {
+		if (count < 3)
+			count += 1;
+	} else if (pc->branch_outcome == 'n') {
+		if (count > 0)
+			count -= 1;
+	}
+
+	predictor->pred_table.table[base] = update_bits(byte, offset, offset + predictor->config.bits_per_entry - 1, count);
+
+#ifdef DEBUG_OP
+	printf("\tBU: %d %d\n", index, count);
+#endif
+}
+
+int get_gshare_prediction(predictor_t *predictor, pc_t *pc)
+{
+	int index, base, offset, byte, count;
+	int m_pc_bits, lower_pc_bits, n_pc_bits;
+	int this_prediction;
+
+	/* Extracting index:
+		1) First we extract 2 to M1+1 bits of pc - number of bits extracted will be M1.
+		2) Then from these M1 bits, we extract upper N bits.
+		3) XOR these upper N bits with N-bits long BHR (Branch History Register).
+		4) Append the lower bits (n-m) of pc extracted bits to result of XOR - forming the index.
+	*/
+	m_pc_bits = extract_bits(pc->addr, 2, predictor->config.M1 + 1);
+	lower_pc_bits = extract_bits(m_pc_bits, 0, predictor->config.M1 - predictor->config.N - 1);
+	n_pc_bits = extract_bits(m_pc_bits, predictor->config.M1 - predictor->config.N, predictor->config.M1 - 1);
+
+	index = n_pc_bits ^ predictor->bhr;
+	index = index << (predictor->config.M1 - predictor->config.N);
+	index = index ^ lower_pc_bits;
+
+	/* The index will provide a unique prediction counter.
+	   However, since each counter is a 2 bit entity, index is first split into base and offset.
+	   Base points to the byte which contains the required indexed count. Offset points to the first bit of the two-bit
+	   counter within the byte indexed by the base.
+	*/
+	base = index / predictor->config.entries_per_byte;
+	offset = index % predictor->config.entries_per_byte;
+	offset = offset * 2;
+	byte = predictor->pred_table.table[base];
+	count = extract_bits(byte, offset, offset + predictor->config.bits_per_entry - 1);
+
+#ifdef DEBUG_OP
+	printf("\tGP: %d %d\n", index, count);
+#endif
+
+	if (count == 0 || count == 1) {
+		this_prediction = NOT_TAKEN;
+	} else if (count == 2 || count == 3) {
+		this_prediction = TAKEN;
+	}
+
+	return (this_prediction);
+}
+
+void update_gshare_predictor(predictor_t *predictor, int prediction, pc_t *pc)
+{
+	int base, offset, byte, count, index;
+	int m_pc_bits, lower_pc_bits, n_pc_bits;
+	int is_misprediction;
+
+	m_pc_bits = extract_bits(pc->addr, 2, predictor->config.M1 + 1);
+	lower_pc_bits = extract_bits(m_pc_bits, 0, predictor->config.M1 - predictor->config.N - 1);
+	n_pc_bits = extract_bits(m_pc_bits, predictor->config.M1 - predictor->config.N, predictor->config.M1 - 1);
+
+	index = n_pc_bits ^ predictor->bhr;
+	index = index << (predictor->config.M1 - predictor->config.N);
+	index = index ^ lower_pc_bits;
+
+	base = index / predictor->config.entries_per_byte;
+	offset = index % predictor->config.entries_per_byte;
+	offset = offset * 2;
+	byte = predictor->pred_table.table[base];
+	count = extract_bits(byte, offset, offset + predictor->config.bits_per_entry - 1);
+
+	is_misprediction = 0;
+	if (pc->branch_outcome == 'n' && prediction == TAKEN) {
+		is_misprediction = 1;
+		predictor->config.num_mispredictions += 1;
+	} else if (pc->branch_outcome == 't' && prediction == NOT_TAKEN) {
+		is_misprediction = 1;
+		predictor->config.num_mispredictions += 1;
+	}
+
+	if (pc->branch_outcome == 't') {
+		if (count < 3)
+			count += 1;
+	} else if (pc->branch_outcome == 'n') {
+		if (count > 0)
+			count -= 1;
+	}
+
+	predictor->pred_table.table[base] = update_bits(byte, offset, offset + predictor->config.bits_per_entry - 1, count);
+
+#ifdef DEBUG_OP
+	printf("\tBU: %d %d\n", index, count);
+#endif
+}
+
+void update_gshare_bhr(predictor_t *predictor, pc_t *pc)
+{
+	int msb_bhr;
+
+	msb_bhr = 0;
+	if (pc->branch_outcome == 'n')
+		msb_bhr = 0;
+	else if (pc->branch_outcome == 't')
+		msb_bhr = 1;
+
+	/* Updating BHR (Branch History Register)
+	   BHR is shifted Right by one bit.
+	   The actual outcome of the branch is then put as the Most Significant Bit of the BHR (i.e. N-1th bit of BHR).
+	*/
+	predictor->bhr = predictor->bhr >> 1;
+	msb_bhr = msb_bhr << (predictor->config.N - 1);
+	predictor->bhr = predictor->bhr ^ msb_bhr;
+}
+
 void handle_hybrid_branch_prediction(hybrid_predictor_t *hybrid_predictor, pc_t *pc)
 {
-	;
+
+	int bimodal_prediction, gshare_prediction;
+	int index, offset, base, byte, chooser_count;
+	int this_prediction, pred_type, actual_outcome;
+
+#ifdef DEBUG_OP
+	printf("=%ld\t%x %c\n", hybrid_predictor->config.num_predictions, pc->addr, pc->branch_outcome);
+#endif
+
+	gshare_prediction = get_gshare_prediction(&hybrid_predictor->gshare, pc);
+	bimodal_prediction = get_bimodal_prediction(&hybrid_predictor->bimodal, pc);
+
+	index = extract_bits(pc->addr, 2, hybrid_predictor->config.K + 1);
+	base = index / hybrid_predictor->config.entries_per_byte;
+	offset = index % hybrid_predictor->config.entries_per_byte;
+	offset = offset * 2;
+	byte = hybrid_predictor->chooser_table.table[base];
+	chooser_count = extract_bits(byte, offset, offset + hybrid_predictor->config.bits_per_entry - 1);
+
+#ifdef DEBUG_OP
+	printf("\tCP: %d %d\n", index, chooser_count);
+#endif
+
+	if (chooser_count == 0 || chooser_count == 1) {
+		this_prediction = bimodal_prediction;
+		pred_type = BIMODAL;
+		update_bimodal_predictor(&hybrid_predictor->bimodal, bimodal_prediction, pc);
+	} else if (chooser_count == 2 || chooser_count == 3) {
+		this_prediction = gshare_prediction;
+		pred_type = GSHARE;
+		update_gshare_predictor(&hybrid_predictor->gshare, gshare_prediction, pc);
+	}
+
+	update_gshare_bhr(&hybrid_predictor->gshare, pc);
+
+	if (pc->branch_outcome == 'n')
+		actual_outcome = NOT_TAKEN;
+	else if (pc->branch_outcome == 't')
+		actual_outcome = TAKEN;
+
+	if (gshare_prediction == actual_outcome && bimodal_prediction != actual_outcome) {
+		if (chooser_count < 3)
+			chooser_count += 1;
+		hybrid_predictor->chooser_table.table[base] = update_bits(byte, offset, offset + hybrid_predictor->config.bits_per_entry - 1, chooser_count);
+#ifdef DEBUG_OP
+		printf("\tCU: %d %d\n", index, chooser_count);
+#endif
+	} else if (gshare_prediction != actual_outcome && bimodal_prediction == actual_outcome) {
+		if (chooser_count > 0)
+			chooser_count -= 1;
+		hybrid_predictor->chooser_table.table[base] = update_bits(byte, offset, offset + hybrid_predictor->config.bits_per_entry - 1, chooser_count);
+#ifdef DEBUG_OP
+		printf("\tCU: %d %d\n", index, chooser_count);
+#endif
+	}
+
+	if (this_prediction != actual_outcome)
+		hybrid_predictor->config.num_mispredictions += 1;
+
 }
 

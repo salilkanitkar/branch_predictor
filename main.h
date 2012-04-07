@@ -13,6 +13,9 @@
 #define TAKEN 0
 #define NOT_TAKEN 1
 
+#define BIMODAL 0
+#define GSHARE 1
+
 extern char sim_type[MAX_SIMTYPE_LEN];
 extern char trace_str[MAX_TRACESTR_LEN];
 

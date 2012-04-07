@@ -82,8 +82,10 @@ int main(int argc, char *argv[])
 			predictor.config.num_predictions += 1;
 
 		} else {
+
 			handle_hybrid_branch_prediction(&hybrid_predictor, &pc);
 			hybrid_predictor.config.num_predictions += 1;
+
 		}
 	}
 
