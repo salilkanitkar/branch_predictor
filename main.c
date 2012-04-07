@@ -20,17 +20,23 @@ int K=0;
 pc_t pc;
 
 predictor_t predictor;
+hybrid_predictor_t hybrid_predictor;
 
 void print_usage();
 int validate_and_set_params(int, char *[]);
 void print_params();
 void print_pred_table();
+void print_hybrid_params();
+void print_hybrid_pred_table();
 
 int main(int argc, char *argv[])
 {
 
 	predictor.config.num_predictions = 0;
 	predictor.config.num_mispredictions = 0;
+
+	hybrid_predictor.config.num_predictions = 0;
+	hybrid_predictor.config.num_mispredictions = 0;
 
 	if (!(argc == 4 || argc == 5 || argc == 7)) {
 		printf("Invalid Numebr of Arguments!! \n\n");
@@ -51,11 +57,16 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initialize_pred_params(&predictor);
-	allocate_and_init_pred_tab(&predictor);
+	if (strcmp(sim_type, "hybrid") != 0) {
+		initialize_pred_params(&predictor);
+		allocate_and_init_pred_tab(&predictor);
 #ifdef DEBUG_FLAG
 	print_pred_table();
 #endif
+	} else if (strcmp(sim_type, "hybrid") == 0) {
+		init_hybrid_pred_params(&hybrid_predictor);
+		allocate_and_init_hybrid_pred_tab(&hybrid_predictor);
+	}
 
 	while (fgets(trace_str, MAX_TRACESTR_LEN, fp_trace)) {
 
@@ -65,12 +76,22 @@ int main(int argc, char *argv[])
 		printf("%x %c\n", pc.addr, pc.branch_outcome);
 #endif
 
-		handle_branch_prediction(&predictor, &pc);
+		if (strcmp(sim_type, "hybrid") != 0) {
 
-		predictor.config.num_predictions += 1;
+			handle_branch_prediction(&predictor, &pc);
+			predictor.config.num_predictions += 1;
+
+		} else {
+			handle_hybrid_branch_prediction(&hybrid_predictor, &pc);
+			hybrid_predictor.config.num_predictions += 1;
+		}
 	}
 
-	print_params();
+	if (strcmp(sim_type, "hybrid") != 0) {
+		print_params();
+	} else {
+		print_hybrid_params();
+	}
 
 	return 0;
 }
@@ -155,8 +176,6 @@ void print_params()
 		printf(" %s %s %d %s\n", cmd_text, sim_type, M2, trace_file);
 	} else if (strcmp(sim_type, "gshare") == 0) {
 		printf(" %s %s %d %d %s\n", cmd_text, sim_type, M1, N, trace_file);
-	} else if (strcmp(sim_type, "hybrid") == 0) {
-		printf(" %s %s %d %d %d %d %s\n", cmd_text, sim_type, K, M1, N, M2, trace_file);
 	}
 
 	predictor.config.misprediction_rate = (float)predictor.config.num_mispredictions / (float)predictor.config.num_predictions;
@@ -171,8 +190,6 @@ void print_params()
 		printf("FINAL BIMODAL CONTENTS\n");
 	} else if (strcmp(sim_type, "gshare") == 0) {
 		printf("FINAL GSHARE CONTENTS\n");
-	} else if (strcmp(sim_type, "hybrid") == 0) {
-		printf("FINAL HYBRID CONTENTS\n");
 	}
 	print_pred_table();
 }
@@ -190,5 +207,58 @@ void print_pred_table()
 		count = extract_bits(byte, offset, offset + predictor.config.bits_per_entry - 1);
 		printf(" %d\t%d\n", i, count);
 	}
+}
+
+void print_hybrid_params()
+{
+	printf("COMMAND\n");
+	printf(" %s %s %d %d %d %d %s\n", cmd_text, sim_type, K, M1, N, M2, trace_file);
+
+	hybrid_predictor.config.misprediction_rate = (float)hybrid_predictor.config.num_mispredictions / (float)hybrid_predictor.config.num_predictions;
+	hybrid_predictor.config.misprediction_rate = hybrid_predictor.config.misprediction_rate * 100;
+
+	printf("OUTPUT\n");
+	printf(" number of predictions:    %ld\n", hybrid_predictor.config.num_predictions);
+	printf(" number of mispredictions: %ld\n", hybrid_predictor.config.num_mispredictions);
+	printf(" misprediction rate:       %.2f%%\n", hybrid_predictor.config.misprediction_rate);
+
+	print_hybrid_pred_table();
+}
+
+void print_hybrid_pred_table()
+{
+	int base, offset, byte, count;
+	int i;
+
+	printf("FINAL CHOOSER CONTENTS\n");
+	for (i=0 ; i < hybrid_predictor.config.num_entries ; i++) {
+		base = i / hybrid_predictor.config.entries_per_byte;
+		offset = i % hybrid_predictor.config.entries_per_byte;
+		offset = offset * 2;
+		byte = hybrid_predictor.chooser_table.table[base];
+		count = extract_bits(byte, offset, offset + hybrid_predictor.config.bits_per_entry - 1);
+		printf(" %d\t%d\n", i, count);
+	}
+
+	printf("FINAL GSHARE CONTENTS\n");
+	for (i=0 ; i < hybrid_predictor.gshare.config.num_entries ; i++) {
+		base = i / hybrid_predictor.gshare.config.entries_per_byte;
+		offset = i % hybrid_predictor.gshare.config.entries_per_byte;
+		offset = offset * 2;
+		byte = hybrid_predictor.gshare.pred_table.table[base];
+		count = extract_bits(byte, offset, offset + hybrid_predictor.gshare.config.bits_per_entry - 1);
+		printf(" %d\t%d\n", i, count);
+	}
+
+	printf("FINAL BIMODAL CONTENTS\n");
+	for (i=0 ; i < hybrid_predictor.bimodal.config.num_entries ; i++) {
+		base = i / hybrid_predictor.bimodal.config.entries_per_byte;
+		offset = i % hybrid_predictor.bimodal.config.entries_per_byte;
+		offset = offset * 2;
+		byte = hybrid_predictor.bimodal.pred_table.table[base];
+		count = extract_bits(byte, offset, offset + hybrid_predictor.bimodal.config.bits_per_entry - 1);
+		printf(" %d\t%d\n", i, count);
+	}
+
 }
 

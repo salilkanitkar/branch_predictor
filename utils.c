@@ -19,13 +19,7 @@ void initialize_pred_params(predictor_t *predictor)
 		predictor->config.M1 = M1;
 		predictor->config.N = N;
 		predictor->config.K = 0;
-	} else if (strcmp(sim_type, "hybrid") == 0) {
-		strcpy(predictor->config.sim_type, sim_type);
-		predictor->config.M2 = M2;
-		predictor->config.M1 = M1;
-		predictor->config.N = N;
-		predictor->config.K = K;
-	}
+	} 
 }
 
 void allocate_and_init_pred_tab(predictor_t *predictor)
@@ -223,4 +217,91 @@ void handle_branch_prediction(predictor_t *predictor, pc_t *pc)
 	}
 }
 
+void init_hybrid_pred_params(hybrid_predictor_t *hybrid_predictor)
+{
+	/* Initialize Hybrid Branch Predictor Parameters. */
+	strcpy(hybrid_predictor->config.sim_type, sim_type);
+	hybrid_predictor->config.K = K;
+	hybrid_predictor->config.M1 = M1;
+	hybrid_predictor->config.N = N;
+	hybrid_predictor->config.M2 = M2;
+
+	/* Initialize Bimodal Branch Predictor Parameters. */
+	strcpy(hybrid_predictor->bimodal.config.sim_type, "bimodal");
+	hybrid_predictor->bimodal.config.M2 = M2;
+	hybrid_predictor->bimodal.config.M1 = 0;
+	hybrid_predictor->bimodal.config.N = 0;
+	hybrid_predictor->bimodal.config.K = 0;
+
+	/* initialize GShare Branch Predictor Parameters. */
+	strcpy(hybrid_predictor->gshare.config.sim_type, "gshare");
+	hybrid_predictor->gshare.config.M2 = 0;
+	hybrid_predictor->gshare.config.M1 = M1;
+	hybrid_predictor->gshare.config.N = N;
+	hybrid_predictor->gshare.config.K = 0;
+}
+
+void allocate_and_init_hybrid_pred_tab(hybrid_predictor_t *hybrid_predictor)
+{
+	int i;
+
+	/* Allocate and Assign Hybrid Branch Predictor Parameters. */
+	hybrid_predictor->config.num_entries = pow(2, hybrid_predictor->config.K);
+	hybrid_predictor->config.bits_per_entry = COUNTER_BITS;
+	hybrid_predictor->chooser_table.size_in_bytes = hybrid_predictor->config.num_entries * hybrid_predictor->config.bits_per_entry / BITS_PER_BYTE;
+	hybrid_predictor->config.entries_per_byte = BITS_PER_BYTE / hybrid_predictor->config.bits_per_entry;
+
+	hybrid_predictor->chooser_table.table = (unsigned char *)malloc(sizeof(unsigned char) * hybrid_predictor->chooser_table.size_in_bytes);
+	if (hybrid_predictor->chooser_table.table == NULL) {
+		printf("Error while allocating Memory!!\n");
+		printf("Exiting...\n");
+		exit(1);
+	}
+
+	for (i=0 ; i < hybrid_predictor->chooser_table.size_in_bytes ; i++) {
+		hybrid_predictor->chooser_table.table[i] = 0x55;
+	}
+
+	/* Allocate and Assign Bimodal Branch Predictor Parameters. */
+	hybrid_predictor->bimodal.config.num_entries = pow(2, hybrid_predictor->bimodal.config.M2);
+	hybrid_predictor->bimodal.config.bits_per_entry = COUNTER_BITS;
+	hybrid_predictor->bimodal.pred_table.size_in_bytes = hybrid_predictor->bimodal.config.num_entries * hybrid_predictor->bimodal.config.bits_per_entry / BITS_PER_BYTE;
+	hybrid_predictor->bimodal.config.entries_per_byte = BITS_PER_BYTE / hybrid_predictor->bimodal.config.bits_per_entry;
+
+	hybrid_predictor->bimodal.pred_table.table = (unsigned char *)malloc(sizeof(unsigned char) * hybrid_predictor->bimodal.pred_table.size_in_bytes);
+	if (hybrid_predictor->bimodal.pred_table.table == NULL) {
+		printf("Error while allocating Memory!!\n");
+		printf("Exiting...\n");
+		exit(1);
+	}
+
+	for (i=0 ; i < hybrid_predictor->bimodal.pred_table.size_in_bytes ; i++) {
+		hybrid_predictor->bimodal.pred_table.table[i] = 0xAA;
+	}
+
+	/* Allocate and Assign GShare Branch Predictor Parameters. */
+	hybrid_predictor->gshare.config.num_entries = pow(2, hybrid_predictor->gshare.config.M1);
+	hybrid_predictor->gshare.config.bits_per_entry = COUNTER_BITS;
+	hybrid_predictor->gshare.pred_table.size_in_bytes = hybrid_predictor->gshare.config.num_entries * hybrid_predictor->gshare.config.bits_per_entry / BITS_PER_BYTE;
+	hybrid_predictor->gshare.config.entries_per_byte = BITS_PER_BYTE / hybrid_predictor->gshare.config.bits_per_entry;
+
+	hybrid_predictor->gshare.pred_table.table = (unsigned char *)malloc(sizeof(unsigned char) * hybrid_predictor->gshare.pred_table.size_in_bytes);
+	if (hybrid_predictor->gshare.pred_table.table == NULL) {
+		printf("Error while allocating Memory!!\n");
+		printf("Exiting...\n");
+		exit(1);
+	}
+
+	for (i=0 ; i < hybrid_predictor->gshare.pred_table.size_in_bytes ; i++) {
+		hybrid_predictor->gshare.pred_table.table[i] = 0xAA;
+	}
+
+	hybrid_predictor->gshare.bhr = 0;
+
+}
+
+void handle_hybrid_branch_prediction(hybrid_predictor_t *hybrid_predictor, pc_t *pc)
+{
+	;
+}
 

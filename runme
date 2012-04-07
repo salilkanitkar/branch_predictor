@@ -63,5 +63,5 @@ rm -f g_diff.1 g_diff.2 g_diff.3 g_diff.4
 echo "======= Cleaning out Binaries ======="
 make clean ;
 
-echo "Done....."
+echo -e "Done.....\n"
 

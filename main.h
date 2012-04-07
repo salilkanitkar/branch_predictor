@@ -58,11 +58,29 @@ typedef struct _predictor_t {
 
 extern predictor_t predictor;
 
+typedef struct _chooser_table_t {
+	int size_in_bytes;
+	unsigned char *table;
+}chooser_table_t;
+
+typedef struct _hybrid_predictor_t {
+	predictor_config_t config;
+	predictor_t bimodal;
+	predictor_t gshare;
+	chooser_table_t chooser_table;
+}hybrid_predictor_t;
+
+extern hybrid_predictor_t hybrid_predictor;
+
 extern void initialize_pred_params(predictor_t *);
 extern void allocate_and_init_pred_tab(predictor_t *);
-
 
 extern int extract_bits(int, int, int);
 extern int update_bits(int, int, int, int);
 
 extern void handle_branch_prediction(predictor_t *, pc_t *);
+
+extern void init_hybrid_pred_params(hybrid_predictor_t *);
+extern void allocate_and_init_hybrid_pred_tab(hybrid_predictor_t *);
+extern void handle_hybrid_branch_prediction(hybrid_predictor_t *, pc_t *);
+
