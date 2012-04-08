@@ -18,7 +18,7 @@ for file in gcc jpeg perl ; do
 			trace_file="traces/"$file"_trace.txt"
 			./sim gshare $i $j $trace_file > op.$i.$j
 			mispred_rate=`cat op.$i.$j | grep "misprediction rate" | awk '{print $3}' | cut -d '%' -f 1`
-			echo "$i $mispred_rate" >> gshare.points.$file
+			echo "$i $j $mispred_rate" >> gshare.points.$file
 			# echo "$i $j $trace_file"
 		done;
 	done;
