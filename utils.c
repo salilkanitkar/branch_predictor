@@ -303,7 +303,7 @@ void allocate_and_init_hybrid_pred_tab(hybrid_predictor_t *hybrid_predictor)
 int get_bimodal_prediction(predictor_t *predictor, pc_t *pc)
 {
 	int index, base, offset, byte, count;
-	int this_prediction;
+	int this_prediction=0;
 
 	index = extract_bits(pc->addr, 2, predictor->config.M2 + 1);
 	base = index / predictor->config.entries_per_byte;
@@ -365,7 +365,7 @@ int get_gshare_prediction(predictor_t *predictor, pc_t *pc)
 {
 	int index, base, offset, byte, count;
 	int m_pc_bits, lower_pc_bits, n_pc_bits;
-	int this_prediction;
+	int this_prediction=0;
 
 	/* Extracting index:
 		1) First we extract 2 to M1+1 bits of pc - number of bits extracted will be M1.
@@ -473,7 +473,7 @@ void handle_hybrid_branch_prediction(hybrid_predictor_t *hybrid_predictor, pc_t 
 
 	int bimodal_prediction, gshare_prediction;
 	int index, offset, base, byte, chooser_count;
-	int this_prediction, pred_type, actual_outcome;
+	int this_prediction=0, pred_type, actual_outcome=0;
 
 #ifdef DEBUG_OP
 	printf("=%ld\t%x %c\n", hybrid_predictor->config.num_predictions, pc->addr, pc->branch_outcome);
